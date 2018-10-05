@@ -5,6 +5,8 @@
 # 2. keep track of list of candidates that will maximize the efficiency for spla
 # 3. loop through list and V
 
+import math
+
 class SPLA:
     def __init__(self, num_spaces):
         self.num_spaces = num_spaces
@@ -26,11 +28,16 @@ class SPLA:
         return True
 
     def add_applicant(self, applicant):
-        80_percent_full = self.taken_beds
+        80_percent_full = math.floor(self.num_spaces * 0.8)
         for day_needed in applicant.days_needed:
             if self.taken_beds[day_needed] += 1:
-            self.efficiency += 1
-            if self.taken_beds[day_needed] > num
+                self.efficiency += 1
+            if self.taken_beds[day_needed] > 80_percent_full:
+                self.days_at_80_efficiency += 1
+
+    def days_at_80_efficiency(self):
+        return self.days_at_80_efficiency
+
         
 
 class LAHSA:
@@ -51,15 +58,40 @@ def next_SPLA_applicant():
     input_file = open("input.txt")
     content = input_file.readlines()
     content = [line.strip() for line in content]
+    # get num beds, num spaces
     num_beds = int(content[0])
     num_spaces = int(content[1])
-    num_lahsa_chosen = int(content[2])
 
-    # index for num_spla_chosen is 3 + num_lahsa_chosen.
-    spla_chosen_index = 3 + num_lahsa_chosen
-    num_spla_chosen = int(content[spla_chosen_index])
-    
+    # get already chosen ID's
+    num_lahsa_chosen = int(content[2])
+    lahsa_chosen = set()
+
+    current_index = 3
+    for iteration in range(0, num_lahsa_chosen):
+        lahsa_chosen.add(content[current_index])
+        current_index += 1
+
+    num_spla_chosen = int(content[current_index])
+    spla_chosen = set()
+    current_index += 1
+
+    for iteration in range(0, num_spla_chosen):
+        spla_chosen.add(content[current_index])
+        current_index += 1
+
+    # create applicants
+    applicants = []
+    num_total_applicants = int(content[current_index])
+    current_index += 1
+    for iteration in range(0, num_total_applicants):
+        applicants.append(create_applicant(spla_chosen, lahsa_chosen, content[current_index]))
+        current_index += 1
+
+    # do backtracking algorithm
+
 #    output_file = open("output.txt", "w")
 #    output_file.write(str(max_activity) + "\n")
 #    output_file.close()
+    
+def create_applicant(spla_chosen, 
 
