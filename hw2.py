@@ -7,6 +7,7 @@
 
 import math
 
+
 class SPLA:
     def __init__(self, num_spaces):
         self.num_spaces = num_spaces
@@ -19,24 +20,44 @@ class SPLA:
                 "saturday":0,
                 "sunday":0 }
         self.efficiency = 0
-        self.days_at_80_efficiency = 0
+        self.days_at_80_efficiency = set()
+        self.first_chosen = None
+        self.best_first_chosen = None
 
     def can_fit(self, applicant):
-        for day_needed in applicant.days_needed:
-            if self.taken_beds[day_needed] > num_spaces:
+        for day_needed in applicant.days_needed():
+            if self.taken_spaces[day_needed] >= num_spaces:
                 return False
         return True
 
+    def set_first_chosen(self, applicant):
+        self.first_chosen = applicant.ID
+
+    def first_chosen(self):
+        return self.first_chosen
+
+    def set_best_first_chosen(self, applicant_ID):
+        self.best_first_chosen = applicant_ID
+
+    def best_first_chosen(self):
+        return self.best_first_chosen
+
+    def efficiency(self):
+        return self.efficiency
+
+    def num_spaces(self):
+        return num_spaces
+
     def add_applicant(self, applicant):
         80_percent_full = math.floor(self.num_spaces * 0.8)
-        for day_needed in applicant.days_needed:
-            if self.taken_beds[day_needed] += 1:
-                self.efficiency += 1
-            if self.taken_beds[day_needed] > 80_percent_full:
-                self.days_at_80_efficiency += 1
+        for day_needed in applicant.days_needed():
+            self.taken_spaces[day_needed] += 1:
+            self.efficiency += 1
+            if self.taken_spaces[day_needed] > 80_percent_full:
+                self.days_at_80_efficiency.add(day_needed)
 
     def days_at_80_efficiency(self):
-        return self.days_at_80_efficiency
+        return len(self.days_at_80_efficiency)
 
         
 
@@ -53,6 +74,53 @@ class LAHSA:
                 "sunday":0 }
         self.efficiency = 0
 
+    def num_beds(self):
+        return self.num_beds
+
+    def can_fit(self, applicant):
+        for day_needed in applicant.days_needed():
+            if self.taken_beds[day_needed] >= num_spaces:
+                return False
+        return True
+
+    def efficiency(self):
+        return self.efficiency
+
+    def add_applicant(self, applicant):
+        for day_needed in applicant.days_needed():
+            self.taken_beds[day_needed] += 1:
+            self.efficiency += 1
+
+    def remove_applicant(self, applicant):
+        for day_needed in applicant.days_needed():
+            self.taken_beds[day_needed] -= 1:
+            self.efficiency -= 1
+
+class BothPrograms:
+    def __init__(self, spla, lahsa):
+        self.spla = spla
+        self.lahsa = lahsa
+        self.current_best_efficiency = 0
+        self.current_best_80 = 0
+
+    def spla(self):
+        return self.spla
+
+    def lahsa(self):
+        return self.lahsa
+
+    def set_current_best_80(self, current_best_80):
+        self.current_best_80 = current_best_80
+
+    def current_best_80(self):
+        return self.current_best_80
+
+    def set_current_best_efficiency(self, current_best):
+        self.current_best_efficiency = current_best
+
+    def current_best_efficiency(self):
+        return self.current_best_efficiency
+
 
 def next_SPLA_applicant():
     input_file = open("input.txt")
@@ -61,6 +129,10 @@ def next_SPLA_applicant():
     # get num beds, num spaces
     num_beds = int(content[0])
     num_spaces = int(content[1])
+
+    # create programs
+    spla = SPLA(num_spaces)
+    lahsa = LAHSA(num_beds)
 
     # get already chosen ID's
     num_lahsa_chosen = int(content[2])
@@ -84,14 +156,116 @@ def next_SPLA_applicant():
     num_total_applicants = int(content[current_index])
     current_index += 1
     for iteration in range(0, num_total_applicants):
-        applicants.append(create_applicant(spla_chosen, lahsa_chosen, content[current_index]))
+        applicants.append(create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa,  content[current_index]))
         current_index += 1
 
     # do backtracking algorithm
+    accepted_ID = find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa)
+    output_file = open("output.txt", "w")
+    output_file.write(accepted_ID + "\n")
+    output_file.close()
 
-#    output_file = open("output.txt", "w")
-#    output_file.write(str(max_activity) + "\n")
-#    output_file.close()
+def find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa):
+    max_score = (lahsa.num_beds() * 7) + (spla.num_spaces() * 7)
+    current_efficiency = spla.efficiency() + lahsa.efficiency()
+    both_programs = BothPrograms(spla, lahsa)
+    both_programs.set_current_best_efficiency(current_efficiency)
+    find_next_accepted_backtrack(applicants, spla_chosen, lahsa_chosen, both_programs, max_score, 0)
+    return spla.best_first_chosen
+
+# will return true if the max efficiency was found. else false.
+def find_next_accepted_backtrack(applicants,
+        spla_chosen,
+        lahsa_chosen,
+        both_programs,
+        max_efficiency,
+        current_index):
+    spla = both_programs.spla()
+    lahsa = both_programs.lahsa()
+    efficiency = spla.efficiency() + lahsa.efficiency()
+    # if we are at max efficiency
+    if efficiency == max_efficiency and spla.first_chosen() != None:
+        spla.set_best_first_chosen(spla.first_chosen()))
+        return True
+
+    # set best first chosen if the all variables set and efficiency is greater than current best efficiency
+    if current_index = len(applicants):
+        if efficiency > both_programs.current_best_efficiency():
+            spla.set_best_first_chosen(spla.first_chosen()))
+            both_programs.set_current_best_efficiency(efficiency)
+        elif efficiency == both_programs.current_best_efficiency():
+            if spla.days_at_80_efficiency() > both_programs.current_best_80():
+                both_programs.set_current_best_80 = spla.days_at_80_efficiency()
+                spla.set_best_first_chosen(spla.first_chosen())
+        return False
+
+        
+    applicant = applicants[current_index]
+    # if the applicant has already been chosen, just move on to the next applicant.
+    if (applicant.ID in spla_chosen) or (applicant.ID in lahsa_chosen) :
+        return find_next_accepted_backtrack(applicants,
+                spla_chosen,
+                lahsa_chosen,
+                both_programs
+                max_efficiency,
+                current_index + 1)
+
+    for program in applicant.possible_programs()
+        added_to_spla = False
+        added_to_lahsa = False
+        if program == "spla" and spla.can_fit(applicant):
+            if spla.first_chosen == None:
+                 spla.set_first_chosen(applicant)
+            spla.add_applicant(applicant)
+            added_to_spla = True
+        elif program == "lahsa" and lahsa.can_fit(applicant):
+            lahsa.add_applicant(applicant)   
+            added_to_lahsa = True
+        found_max_score = find_next_accepted_backtrack(applicants,
+                spla_chosen,
+                lahsa_chosen,
+                both_programs,
+                max_efficiency,
+                current_index + 1)
+
+        #if we found the max score, then return
+        if found_max_score:
+            return True
+        # reset values and remove applicant from chosen program.
+        if added_to_spla:
+            spla.remove_applicant(applicant)
+        elif added_to_lahsa:
+            lahsa.remove_applicant(applicant)
+        if spla.first_chosen == applicant.ID:
+            spla.first_chosen = None
+
     
-def create_applicant(spla_chosen, 
+def create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa, applicant_string):
+    ID = applicant_string[0:5]
+    gender = applicant_string[5]
+    age = applicant_string[6:9]
+    has_pet = applicant_string[9]
+    has_medical_condition = applicant_string[10]
+    has_car = applicant_string[11]
+    has_drivers_license = applicant_string[12]
+    days_needing_shelter = applicant_string[13:]
+
+    appicant = Applicant(
+            ID,
+            gender,
+            age,
+            has_pet,
+            has_medical_condition,
+            has_car,
+            has_drivers_license,
+            days_needing_shelter) 
+    # if the applicant has been chosen, add them to the correct program.
+    if applicant.ID in spla_chosen:
+        spla.add_applicant(applicant) 
+    elif applicant.ID in lahsa_chosen:
+        lahsa.add_applicant(applicant)
+
+    return applicant
+
+
 
