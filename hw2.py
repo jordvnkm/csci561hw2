@@ -25,36 +25,36 @@ class SPLA:
         self.best_first_chosen = None
 
     def can_fit(self, applicant):
-        for day_needed in applicant.days_needed():
-            if self.taken_spaces[day_needed] >= num_spaces:
+        for day_needed in applicant.days_needed:
+            if self.taken_spaces[day_needed] >= self.num_spaces:
                 return False
         return True
 
     def set_first_chosen(self, applicant):
         self.first_chosen = applicant.ID
 
-    def first_chosen(self):
-        return self.first_chosen
-
     def set_best_first_chosen(self, applicant_ID):
         self.best_first_chosen = applicant_ID
 
-    def best_first_chosen(self):
-        return self.best_first_chosen
-
-    def efficiency(self):
-        return self.efficiency
-
     def num_spaces(self):
-        return num_spaces
+        return self.num_spaces
 
     def add_applicant(self, applicant):
-        80_percent_full = math.floor(self.num_spaces * 0.8)
-        for day_needed in applicant.days_needed():
-            self.taken_spaces[day_needed] += 1:
+        eighty_percent_full = math.floor(self.num_spaces * 0.8)
+        for day_needed in applicant.days_needed:
+            self.taken_spaces[day_needed] += 1;
             self.efficiency += 1
-            if self.taken_spaces[day_needed] > 80_percent_full:
+            if self.taken_spaces[day_needed] >= eighty_percent_full:
                 self.days_at_80_efficiency.add(day_needed)
+
+    def remove_applicant(self, applicant):
+        eighty_percent_full = math.floor(self.num_spaces * 0.8)
+        for day_needed in applicant.days_needed:
+            self.taken_spaces[day_needed] -= 1;
+            self.efficiency -= 1
+            if (day_needed in self.days_at_80_efficiency) and self.taken_spaces[day_needed] < eighty_percent_full:
+                self.days_at_80_efficiency.remove(day_needed)
+        
 
     def days_at_80_efficiency(self):
         return len(self.days_at_80_efficiency)
@@ -78,22 +78,19 @@ class LAHSA:
         return self.num_beds
 
     def can_fit(self, applicant):
-        for day_needed in applicant.days_needed():
-            if self.taken_beds[day_needed] >= num_spaces:
+        for day_needed in applicant.days_needed:
+            if self.taken_beds[day_needed] >= self.num_beds:
                 return False
         return True
 
-    def efficiency(self):
-        return self.efficiency
-
     def add_applicant(self, applicant):
-        for day_needed in applicant.days_needed():
-            self.taken_beds[day_needed] += 1:
+        for day_needed in applicant.days_needed:
+            self.taken_beds[day_needed] += 1;
             self.efficiency += 1
 
     def remove_applicant(self, applicant):
-        for day_needed in applicant.days_needed():
-            self.taken_beds[day_needed] -= 1:
+        for day_needed in applicant.days_needed:
+            self.taken_beds[day_needed] -= 1;
             self.efficiency -= 1
 
 class BothPrograms:
@@ -166,8 +163,8 @@ def next_SPLA_applicant():
     output_file.close()
 
 def find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa):
-    max_score = (lahsa.num_beds() * 7) + (spla.num_spaces() * 7)
-    current_efficiency = spla.efficiency() + lahsa.efficiency()
+    max_score = (lahsa.num_beds * 7) + (spla.num_spaces * 7)
+    current_efficiency = spla.efficiency + lahsa.efficiency
     both_programs = BothPrograms(spla, lahsa)
     both_programs.set_current_best_efficiency(current_efficiency)
     find_next_accepted_backtrack(applicants, spla_chosen, lahsa_chosen, both_programs, max_score, 0)
@@ -180,37 +177,41 @@ def find_next_accepted_backtrack(applicants,
         both_programs,
         max_efficiency,
         current_index):
-    spla = both_programs.spla()
-    lahsa = both_programs.lahsa()
-    efficiency = spla.efficiency() + lahsa.efficiency()
+    spla = both_programs.spla
+    lahsa = both_programs.lahsa
+    efficiency = spla.efficiency + lahsa.efficiency
     # if we are at max efficiency
-    if efficiency == max_efficiency and spla.first_chosen() != None:
-        spla.set_best_first_chosen(spla.first_chosen()))
+    if efficiency == max_efficiency and spla.first_chosen != None:
+        spla.set_best_first_chosen(spla.first_chosen)
         return True
 
     # set best first chosen if the all variables set and efficiency is greater than current best efficiency
-    if current_index = len(applicants):
-        if efficiency > both_programs.current_best_efficiency():
-            spla.set_best_first_chosen(spla.first_chosen()))
+    if current_index == len(applicants):
+        if efficiency > both_programs.current_best_efficiency:
+
+            spla.set_best_first_chosen(spla.first_chosen)
             both_programs.set_current_best_efficiency(efficiency)
-        elif efficiency == both_programs.current_best_efficiency():
-            if spla.days_at_80_efficiency() > both_programs.current_best_80():
-                both_programs.set_current_best_80 = spla.days_at_80_efficiency()
-                spla.set_best_first_chosen(spla.first_chosen())
+        elif efficiency == both_programs.current_best_efficiency:
+            if spla.days_at_80_efficiency > both_programs.current_best_80:
+                both_programs.set_current_best_80 = spla.days_at_80_efficiency
+                spla.set_best_first_chosen(spla.first_chosen)
+        elif spla.best_first_chosen == None:
+            spla.set_best_first_chosen(spla.first_chosen)
         return False
 
         
     applicant = applicants[current_index]
+
     # if the applicant has already been chosen, just move on to the next applicant.
     if (applicant.ID in spla_chosen) or (applicant.ID in lahsa_chosen) :
         return find_next_accepted_backtrack(applicants,
                 spla_chosen,
                 lahsa_chosen,
-                both_programs
+                both_programs,
                 max_efficiency,
                 current_index + 1)
 
-    for program in applicant.possible_programs()
+    for program in applicant.possible_programs:
         added_to_spla = False
         added_to_lahsa = False
         if program == "spla" and spla.can_fit(applicant):
@@ -238,19 +239,70 @@ def find_next_accepted_backtrack(applicants,
             lahsa.remove_applicant(applicant)
         if spla.first_chosen == applicant.ID:
             spla.first_chosen = None
+    return False
 
+class Applicant:
+    def __init__(self,
+            ID,
+            gender,
+            age,
+            has_pet,
+            has_medical_condition,
+            has_car,
+            has_drivers_license,
+            days_needing_shelter):
+        self.ID = ID
+        self.gender = gender
+        self.has_pet = has_pet
+        self.age = age
+        self.has_medical_condition = has_medical_condition
+        self.has_car = has_car
+        self.has_drivers_license = has_drivers_license
+        self.days_needed = []
+        self.set_days_needing_shelter(days_needing_shelter)
+        self.possible_programs = []
+        self.set_possible_programs()
+
+    def ID(self):
+        return self.ID
+
+    def set_possible_programs(self):
+        self.possible_programs.append("None")
+        if self.has_car == "Y" and self.has_drivers_license == "Y" and self.has_medical_condition == "N":
+            self.possible_programs.append("spla")
+        if self.gender == "F" and self.age > 17 and self.has_pet == "N":
+            self.possible_programs.append("lahsa")
+
+    def possible_programs(self):
+        return self.possible_programs
+
+    def set_days_needing_shelter(self, days_string):
+        if int(days_string[0]) == 1:
+            self.days_needed.append("monday")
+        if int(days_string[1]) == 1:
+            self.days_needed.append("tuesday")
+        if int(days_string[2]) == 1:
+            self.days_needed.append("wednesday")
+        if int(days_string[3]) == 1:
+            self.days_needed.append("thursday")
+        if int(days_string[4]) == 1:
+            self.days_needed.append("friday")
+        if int(days_string[5]) == 1:
+            self.days_needed.append("saturday")
+        if int(days_string[6]) == 1:
+            self.days_needed.append("sunday")
     
 def create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa, applicant_string):
     ID = applicant_string[0:5]
     gender = applicant_string[5]
-    age = applicant_string[6:9]
+    age = int(applicant_string[6:9])
     has_pet = applicant_string[9]
     has_medical_condition = applicant_string[10]
     has_car = applicant_string[11]
     has_drivers_license = applicant_string[12]
     days_needing_shelter = applicant_string[13:]
 
-    appicant = Applicant(
+    applicant = Applicant(
             ID,
             gender,
             age,
@@ -268,4 +320,6 @@ def create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa, applicant_string):
     return applicant
 
 
+if __name__ == "__main__":
+    next_SPLA_applicant()
 
