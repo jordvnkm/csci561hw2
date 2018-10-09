@@ -20,20 +20,13 @@ class SPLA:
                 "saturday":0,
                 "sunday":0 }
         self.efficiency = 0
-        self.first_chosen = None
-        self.best_first_chosen = None
+        self.possible_applicants = set()
 
     def can_fit(self, applicant):
         for day_needed in applicant.days_needed:
             if self.taken_spaces[day_needed] >= self.num_spaces:
                 return False
         return True
-
-    def set_first_chosen(self, applicant):
-        self.first_chosen = applicant.ID
-
-    def set_best_first_chosen(self, applicant_ID):
-        self.best_first_chosen = applicant_ID
 
     def num_spaces(self):
         return self.num_spaces
@@ -62,6 +55,7 @@ class LAHSA:
                 "saturday":0,
                 "sunday":0 }
         self.efficiency = 0
+        self.possible_applicants = set()
 
     def num_beds(self):
         return self.num_beds
@@ -87,7 +81,6 @@ class BothPrograms:
         self.spla = spla
         self.lahsa = lahsa
         self.current_best_efficiency = 0
-        self.current_best_80 = 0
 
     def spla(self):
         return self.spla
@@ -95,17 +88,8 @@ class BothPrograms:
     def lahsa(self):
         return self.lahsa
 
-    def set_current_best_80(self, current_best_80):
-        self.current_best_80 = current_best_80
-
-    def current_best_80(self):
-        return self.current_best_80
-
     def set_current_best_efficiency(self, current_best):
         self.current_best_efficiency = current_best
-
-    def current_best_efficiency(self):
-        return self.current_best_efficiency
 
 
 def next_SPLA_applicant():
@@ -145,85 +129,83 @@ def next_SPLA_applicant():
         applicants.append(create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa,  content[current_index]))
         current_index += 1
 
-    # do backtracking algorithm
+    # do minimax algorithm
     accepted_ID = find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa)
     output_file = open("output.txt", "w")
     output_file.write(accepted_ID + "\n")
     output_file.close()
 
 def find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa):
-    max_score = (lahsa.num_beds * 7) + (spla.num_spaces * 7)
-    current_efficiency = spla.efficiency + lahsa.efficiency
-    both_programs = BothPrograms(spla, lahsa)
-    both_programs.set_current_best_efficiency(current_efficiency)
-    find_next_accepted_backtrack(applicants, spla_chosen, lahsa_chosen, both_programs, max_score, 0)
-    return spla.best_first_chosen
-
-# will return true if the max efficiency was found. else false.
-def find_next_accepted_backtrack(applicants,
-        spla_chosen,
-        lahsa_chosen,
-        both_programs,
-        max_efficiency,
-        current_index):
-    spla = both_programs.spla
-    lahsa = both_programs.lahsa
-    efficiency = spla.efficiency + lahsa.efficiency
-    # if we are at max efficiency
-    if efficiency == max_efficiency and spla.first_chosen != None:
-        spla.set_best_first_chosen(spla.first_chosen)
-        return True
-
-    # set best first chosen if the all variables set and efficiency is greater than current best efficiency
-    if current_index == len(applicants):
-        if efficiency > both_programs.current_best_efficiency:
-            spla.set_best_first_chosen(spla.first_chosen)
-            both_programs.set_current_best_efficiency(efficiency)
-        elif spla.best_first_chosen == None:
-            spla.set_best_first_chosen(spla.first_chosen)
-        return False
-
-        
-    applicant = applicants[current_index]
-
-    # if the applicant has already been chosen, just move on to the next applicant.
-    if (applicant.ID in spla_chosen) or (applicant.ID in lahsa_chosen) :
-        return find_next_accepted_backtrack(applicants,
-                spla_chosen,
-                lahsa_chosen,
-                both_programs,
-                max_efficiency,
-                current_index + 1)
-
-    for program in applicant.possible_programs:
-        added_to_spla = False
-        added_to_lahsa = False
-        if program == "spla" and spla.can_fit(applicant):
-            if spla.first_chosen == None:
-                 spla.set_first_chosen(applicant)
+    max_efficiency = -1
+    best_applicant = None
+    for applicant in spla.possible_applicants.copy():
+        # remove this applicant from SPLA and maybe from LAHSA
+        spla.possible_applicants.remove(applicant)
+        removed_from_lahsa = False
+        if spla.can_fit(applicant):
             spla.add_applicant(applicant)
-            added_to_spla = True
-        elif program == "lahsa" and lahsa.can_fit(applicant):
-            lahsa.add_applicant(applicant)   
-            added_to_lahsa = True
-        found_max_score = find_next_accepted_backtrack(applicants,
-                spla_chosen,
-                lahsa_chosen,
-                both_programs,
-                max_efficiency,
-                current_index + 1)
+            if applicant in lahsa.possible_applicants:
+                lahsa.possible_applicants.remove(applicant)
+                removed_from_lahsa = True
+        spla_efficiency, lahsa_efficiency = lahsa_turn_max(applicants,  spla, lahsa)
+        if spla_efficiency > max_efficiency:
+            max_efficiency = spla_efficiency
+            best_applicant = applicant
+        spla.possible_applicants.add(applicant)
+        if removed_from_lahsa:
+            lahsa.possible_applicants.add(applicant)
+    return best_applicant.ID
 
-        #if we found the max score, then return
-        if found_max_score:
-            return True
-        # reset values and remove applicant from chosen program.
-        if added_to_spla:
-            spla.remove_applicant(applicant)
-        elif added_to_lahsa:
-            lahsa.remove_applicant(applicant)
-        if spla.first_chosen == applicant.ID:
-            spla.first_chosen = None
-    return False
+def lahsa_turn_max(applicants, spla, lahsa):
+    if len(lahsa.possible_applicants) == 0 and len(spla.possible_applicants) == 0:
+        return spla.efficiency, lahsa.efficiency
+    elif len(lahsa.possible_applicants) == 0:
+        return spla_turn_max(applicants, spla, lahsa), lahsa.efficiency
+
+    best_lahsa_efficiency = -1
+    associated_spla_efficiency = -1
+    for applicant in lahsa.possible_applicants.copy():
+        lahsa.possible_applicants.remove(applicant)
+        removed_from_spla = False
+        if lahsa.can_fit(applicant):
+            lahsa.add_applicant(applicant)
+            if applicant in spla.possible_applicants:
+                spla.possible_applicants.remove(applicant)
+                removed_from_spla = True
+        spla_efficiency, lahsa_efficiency = spla_turn_max(applicants, spla, lahsa)
+        if best_lahsa_efficiency < lahsa_efficiency:
+            best_lahsa_efficiency = lahsa_efficiency
+            associated_spla_efficiency = spla_efficiency
+        lahsa.possible_applicants.add(applicant)
+        if removed_from_spla:
+            spla.possible_applicants.add(applicant)
+    return associated_spla_efficiency, best_lahsa_efficiency
+
+
+def spla_turn_max(applicants, spla, lahsa):
+    if len(spla.possible_applicants) == 0 and len(lahsa.possible_applicants) == 0:
+        return spla.efficiency, lahsa.efficiency
+    elif len(spla.possible_applicants) == 0:
+        return spla.efficiency, lahsa_turn_max(applicants, spla, lahsa)
+
+    best_spla_efficiency = -1
+    associated_lahsa_efficiency = -1
+    for applicant in spla.possible_applicants.copy():
+        spla.possible_applicants.remove(applicant)
+        removed_from_lahsa = False
+        if spla.can_fit(applicant):
+            spla.add_applicant(applicant)
+            if applicant in lahsa.possible_applicants:
+                lahsa.possible_applicants.remove(applicant)
+                removed_from_lahsa = True
+        spla_efficiency, lahsa_efficiency = lahsa_turn_max(applicants, spla, lahsa)
+        if best_spla_efficiency < spla_efficiency:
+            best_spla_efficiency = spla_efficiency
+            associated_lahsa_efficiency = lahsa_efficiency
+        spla.possible_applicants.add(applicant)
+        if removed_from_lahsa:
+            lahsa.possible_applicants.add(applicant)
+    return best_spla_efficiency, lahsa_efficiency
 
 class Applicant:
     def __init__(self,
@@ -247,18 +229,15 @@ class Applicant:
         self.possible_programs = []
         self.set_possible_programs()
 
-    def ID(self):
+    def __repr__(self):
         return self.ID
-
+    
     def set_possible_programs(self):
         self.possible_programs.append("None")
         if self.has_car == "Y" and self.has_drivers_license == "Y" and self.has_medical_condition == "N":
             self.possible_programs.append("spla")
         if self.gender == "F" and self.age > 17 and self.has_pet == "N":
             self.possible_programs.append("lahsa")
-
-    def possible_programs(self):
-        return self.possible_programs
 
     def set_days_needing_shelter(self, days_string):
         if int(days_string[0]) == 1:
@@ -298,9 +277,15 @@ def create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa, applicant_string):
     # if the applicant has been chosen, add them to the correct program.
     if applicant.ID in spla_chosen:
         spla.add_applicant(applicant) 
+        return applicant
     elif applicant.ID in lahsa_chosen:
         lahsa.add_applicant(applicant)
+        return applicant
 
+    if "spla" in applicant.possible_programs:
+        spla.possible_applicants.add(applicant)
+    elif "lahsa" in applicant.possible_programs:
+        lahsa.possible_applicants.add(applicant)
     return applicant
 
 
