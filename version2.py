@@ -7,6 +7,7 @@
 
 import math
 
+# classes
 
 class SPLA:
     def __init__(self, num_spaces):
@@ -91,6 +92,56 @@ class BothPrograms:
     def set_current_best_efficiency(self, current_best):
         self.current_best_efficiency = current_best
 
+class Applicant:
+    def __init__(self,
+            ID,
+            gender,
+            age,
+            has_pet,
+            has_medical_condition,
+            has_car,
+            has_drivers_license,
+            days_needing_shelter):
+        self.ID = ID
+        self.gender = gender
+        self.has_pet = has_pet
+        self.age = age
+        self.has_medical_condition = has_medical_condition
+        self.has_car = has_car
+        self.has_drivers_license = has_drivers_license
+        self.days_needed = []
+        self.set_days_needing_shelter(days_needing_shelter)
+        self.possible_programs = []
+        self.set_possible_programs()
+
+    def __repr__(self):
+        return self.ID
+    
+    def set_possible_programs(self):
+        self.possible_programs.append("None")
+        if self.has_car == "Y" and self.has_drivers_license == "Y" and self.has_medical_condition == "N":
+            self.possible_programs.append("spla")
+        if self.gender == "F" and self.age > 17 and self.has_pet == "N":
+            self.possible_programs.append("lahsa")
+
+    def set_days_needing_shelter(self, days_string):
+        if int(days_string[0]) == 1:
+            self.days_needed.append("monday")
+        if int(days_string[1]) == 1:
+            self.days_needed.append("tuesday")
+        if int(days_string[2]) == 1:
+            self.days_needed.append("wednesday")
+        if int(days_string[3]) == 1:
+            self.days_needed.append("thursday")
+        if int(days_string[4]) == 1:
+            self.days_needed.append("friday")
+        if int(days_string[5]) == 1:
+            self.days_needed.append("saturday")
+        if int(days_string[6]) == 1:
+            self.days_needed.append("sunday")
+
+
+# methods
 
 def next_SPLA_applicant():
     input_file = open("input.txt")
@@ -206,54 +257,6 @@ def spla_turn_max(applicants, spla, lahsa):
         if removed_from_lahsa:
             lahsa.possible_applicants.add(applicant)
     return best_spla_efficiency, lahsa_efficiency
-
-class Applicant:
-    def __init__(self,
-            ID,
-            gender,
-            age,
-            has_pet,
-            has_medical_condition,
-            has_car,
-            has_drivers_license,
-            days_needing_shelter):
-        self.ID = ID
-        self.gender = gender
-        self.has_pet = has_pet
-        self.age = age
-        self.has_medical_condition = has_medical_condition
-        self.has_car = has_car
-        self.has_drivers_license = has_drivers_license
-        self.days_needed = []
-        self.set_days_needing_shelter(days_needing_shelter)
-        self.possible_programs = []
-        self.set_possible_programs()
-
-    def __repr__(self):
-        return self.ID
-    
-    def set_possible_programs(self):
-        self.possible_programs.append("None")
-        if self.has_car == "Y" and self.has_drivers_license == "Y" and self.has_medical_condition == "N":
-            self.possible_programs.append("spla")
-        if self.gender == "F" and self.age > 17 and self.has_pet == "N":
-            self.possible_programs.append("lahsa")
-
-    def set_days_needing_shelter(self, days_string):
-        if int(days_string[0]) == 1:
-            self.days_needed.append("monday")
-        if int(days_string[1]) == 1:
-            self.days_needed.append("tuesday")
-        if int(days_string[2]) == 1:
-            self.days_needed.append("wednesday")
-        if int(days_string[3]) == 1:
-            self.days_needed.append("thursday")
-        if int(days_string[4]) == 1:
-            self.days_needed.append("friday")
-        if int(days_string[5]) == 1:
-            self.days_needed.append("saturday")
-        if int(days_string[6]) == 1:
-            self.days_needed.append("sunday")
     
 def create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa, applicant_string):
     ID = applicant_string[0:5]
@@ -284,7 +287,7 @@ def create_applicant(spla_chosen, spla,  lahsa_chosen, lahsa, applicant_string):
 
     if "spla" in applicant.possible_programs:
         spla.possible_applicants.add(applicant)
-    elif "lahsa" in applicant.possible_programs:
+    if "lahsa" in applicant.possible_programs:
         lahsa.possible_applicants.add(applicant)
     return applicant
 
