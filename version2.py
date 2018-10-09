@@ -77,21 +77,6 @@ class LAHSA:
             self.taken_beds[day_needed] -= 1;
             self.efficiency -= 1
 
-class BothPrograms:
-    def __init__(self, spla, lahsa):
-        self.spla = spla
-        self.lahsa = lahsa
-        self.current_best_efficiency = 0
-
-    def spla(self):
-        return self.spla
-
-    def lahsa(self):
-        return self.lahsa
-
-    def set_current_best_efficiency(self, current_best):
-        self.current_best_efficiency = current_best
-
 class Applicant:
     def __init__(self,
             ID,
@@ -181,12 +166,12 @@ def next_SPLA_applicant():
         current_index += 1
 
     # do minimax algorithm
-    accepted_ID = find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa)
+    accepted_ID = find_next_accepted(spla, lahsa)
     output_file = open("output.txt", "w")
     output_file.write(accepted_ID + "\n")
     output_file.close()
 
-def find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa):
+def find_next_accepted(spla, lahsa):
     max_efficiency = -1
     best_applicant = None
     for applicant in spla.possible_applicants.copy():
@@ -198,20 +183,21 @@ def find_next_accepted(applicants, spla_chosen, lahsa_chosen, spla, lahsa):
             if applicant in lahsa.possible_applicants:
                 lahsa.possible_applicants.remove(applicant)
                 removed_from_lahsa = True
-        spla_efficiency, lahsa_efficiency = lahsa_turn_max(applicants,  spla, lahsa)
+        spla_efficiency, lahsa_efficiency = lahsa_turn_max(spla, lahsa)
         if spla_efficiency > max_efficiency:
             max_efficiency = spla_efficiency
             best_applicant = applicant
         spla.possible_applicants.add(applicant)
+        spla.remove_applicant(applicant)
         if removed_from_lahsa:
             lahsa.possible_applicants.add(applicant)
     return best_applicant.ID
 
-def lahsa_turn_max(applicants, spla, lahsa):
+def lahsa_turn_max(spla, lahsa):
     if len(lahsa.possible_applicants) == 0 and len(spla.possible_applicants) == 0:
         return spla.efficiency, lahsa.efficiency
     elif len(lahsa.possible_applicants) == 0:
-        return spla_turn_max(applicants, spla, lahsa), lahsa.efficiency
+        return spla_turn_max(spla, lahsa), lahsa.efficiency
 
     best_lahsa_efficiency = -1
     associated_spla_efficiency = -1
@@ -223,21 +209,22 @@ def lahsa_turn_max(applicants, spla, lahsa):
             if applicant in spla.possible_applicants:
                 spla.possible_applicants.remove(applicant)
                 removed_from_spla = True
-        spla_efficiency, lahsa_efficiency = spla_turn_max(applicants, spla, lahsa)
+        spla_efficiency, lahsa_efficiency = spla_turn_max(spla, lahsa)
         if best_lahsa_efficiency < lahsa_efficiency:
             best_lahsa_efficiency = lahsa_efficiency
             associated_spla_efficiency = spla_efficiency
+        lahsa.remove_applicant(applicant)
         lahsa.possible_applicants.add(applicant)
         if removed_from_spla:
             spla.possible_applicants.add(applicant)
     return associated_spla_efficiency, best_lahsa_efficiency
 
 
-def spla_turn_max(applicants, spla, lahsa):
+def spla_turn_max(spla, lahsa):
     if len(spla.possible_applicants) == 0 and len(lahsa.possible_applicants) == 0:
         return spla.efficiency, lahsa.efficiency
     elif len(spla.possible_applicants) == 0:
-        return spla.efficiency, lahsa_turn_max(applicants, spla, lahsa)
+        return spla.efficiency, lahsa_turn_max(spla, lahsa)
 
     best_spla_efficiency = -1
     associated_lahsa_efficiency = -1
@@ -249,10 +236,11 @@ def spla_turn_max(applicants, spla, lahsa):
             if applicant in lahsa.possible_applicants:
                 lahsa.possible_applicants.remove(applicant)
                 removed_from_lahsa = True
-        spla_efficiency, lahsa_efficiency = lahsa_turn_max(applicants, spla, lahsa)
+        spla_efficiency, lahsa_efficiency = lahsa_turn_max(spla, lahsa)
         if best_spla_efficiency < spla_efficiency:
             best_spla_efficiency = spla_efficiency
             associated_lahsa_efficiency = lahsa_efficiency
+        spla.remove_applicant(applicant)
         spla.possible_applicants.add(applicant)
         if removed_from_lahsa:
             lahsa.possible_applicants.add(applicant)
