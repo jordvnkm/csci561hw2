@@ -195,7 +195,7 @@ def find_next_lahsa_accepted(spla, lahsa):
             lahsa.remove_applicant(applicant)
         if removed_from_spla:
             spla.possible_applicants.add(applicant)
-    return best_applicant.ID
+    return best_applicant
 
 def find_next_spla_accepted(spla, lahsa):
     max_efficiency = -1
@@ -229,9 +229,10 @@ def find_next_accepted(spla, lahsa, spla_chosen, lahsa_chosen):
     best_applicant = None
     # If there is more spla chosen then we need to have lahsa choose to catch up.
     while len(spla_chosen) < len(lahsa_chosen) and len(lahsa.possible_applicants) > 0:
-        applicant_ID = find_next_lahsa_accepted(spla, lahsa)
-        lahsa_chosen.add(applicant_ID)
-        lahsa.possible_applicants.remove(applicant_ID)
+        applicant = find_next_lahsa_accepted(spla, lahsa)
+        lahsa_chosen.add(applicant.ID)
+        lahsa.possible_applicants.remove(applicant)
+        spla.possible_applicants.remove(applicant)
     return find_next_spla_accepted(spla, lahsa)
 
 def lahsa_turn_max(spla, lahsa):
