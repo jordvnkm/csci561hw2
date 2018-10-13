@@ -172,8 +172,6 @@ def next_SPLA_applicant():
     output_file.close()
 
 def find_next_accepted(spla, lahsa, spla_chosen, lahsa_chosen):
-    max_efficiency = -1
-    best_applicant = None
     # If there is more spla chosen then we need to have lahsa choose to catch up.
     while len(spla_chosen) < len(lahsa_chosen) and len(lahsa.possible_applicants) > 0:
         applicant = find_next_lahsa_accepted(spla, lahsa)
