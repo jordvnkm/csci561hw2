@@ -166,20 +166,48 @@ def next_SPLA_applicant():
         current_index += 1
 
     # do minimax algorithm
-    accepted_ID = find_next_accepted(spla, lahsa)
+    accepted_ID = find_next_accepted(spla, lahsa, spla_chosen, lahsa_chosen)
     output_file = open("output.txt", "w")
     output_file.write(accepted_ID + "\n")
     output_file.close()
 
-def find_next_accepted(spla, lahsa):
+def find_next_lahsa_accepted(spla, lahsa):
+    max_efficiency = -1
+    best_applicant = None
+    for applicant in lahsa.possible_applicants.copy():
+        # remove this applicant from lahsa and maybe from spla
+        lahsa.possible_applicants.remove(applicant)
+        removed_from_spla = False
+        added_to_lahsa = False
+        if lahsa.can_fit(applicant):
+            lahsa.add_applicant(applicant)
+            added_to_lahsa = True
+            if applicant in spla.possible_applicants:
+                spla.possible_applicants.remove(applicant)
+                removed_from_spla = True
+        spla_efficiency, lahsa_efficiency = spla_turn_max(spla, lahsa)
+        if (lahsa_efficiency > max_efficiency or
+                (lahsa_efficiency == max_efficiency and applicant.ID < best_applicant.ID)):
+            max_efficiency = lahsa_efficiency
+            best_applicant = applicant
+        lahsa.possible_applicants.add(applicant)
+        if added_to_lahsa:
+            lahsa.remove_applicant(applicant)
+        if removed_from_spla:
+            spla.possible_applicants.add(applicant)
+    return best_applicant.ID
+
+def find_next_spla_accepted(spla, lahsa):
     max_efficiency = -1
     best_applicant = None
     for applicant in spla.possible_applicants.copy():
         # remove this applicant from SPLA and maybe from LAHSA
         spla.possible_applicants.remove(applicant)
         removed_from_lahsa = False
+        added_to_spla = False
         if spla.can_fit(applicant):
             spla.add_applicant(applicant)
+            added_to_spla = True
             if applicant in lahsa.possible_applicants:
                 lahsa.possible_applicants.remove(applicant)
                 removed_from_lahsa = True
@@ -189,10 +217,22 @@ def find_next_accepted(spla, lahsa):
             max_efficiency = spla_efficiency
             best_applicant = applicant
         spla.possible_applicants.add(applicant)
-        spla.remove_applicant(applicant)
+        if added_to_spla:
+            spla.remove_applicant(applicant)
         if removed_from_lahsa:
             lahsa.possible_applicants.add(applicant)
     return best_applicant.ID
+
+
+def find_next_accepted(spla, lahsa, spla_chosen, lahsa_chosen):
+    max_efficiency = -1
+    best_applicant = None
+    # If there is more spla chosen then we need to have lahsa choose to catch up.
+    while len(spla_chosen) < len(lahsa_chosen) and len(lahsa.possible_applicants) > 0:
+        applicant_ID = find_next_lahsa_accepted(spla, lahsa)
+        lahsa_chosen.add(applicant_ID)
+        lahsa.possible_applicants.remove(applicant_ID)
+    return find_next_spla_accepted(spla, lahsa)
 
 def lahsa_turn_max(spla, lahsa):
     if len(lahsa.possible_applicants) == 0 and len(spla.possible_applicants) == 0:
@@ -205,8 +245,10 @@ def lahsa_turn_max(spla, lahsa):
     for applicant in lahsa.possible_applicants.copy():
         lahsa.possible_applicants.remove(applicant)
         removed_from_spla = False
+        added_to_lahsa = False
         if lahsa.can_fit(applicant):
             lahsa.add_applicant(applicant)
+            added_to_lahsa = True
             if applicant in spla.possible_applicants:
                 spla.possible_applicants.remove(applicant)
                 removed_from_spla = True
@@ -214,8 +256,9 @@ def lahsa_turn_max(spla, lahsa):
         if best_lahsa_efficiency < lahsa_efficiency:
             best_lahsa_efficiency = lahsa_efficiency
             associated_spla_efficiency = spla_efficiency
-        lahsa.remove_applicant(applicant)
         lahsa.possible_applicants.add(applicant)
+        if added_to_lahsa:
+            lahsa.remove_applicant(applicant)
         if removed_from_spla:
             spla.possible_applicants.add(applicant)
     return associated_spla_efficiency, best_lahsa_efficiency
@@ -232,8 +275,10 @@ def spla_turn_max(spla, lahsa):
     for applicant in spla.possible_applicants.copy():
         spla.possible_applicants.remove(applicant)
         removed_from_lahsa = False
+        added_to_spla = False
         if spla.can_fit(applicant):
             spla.add_applicant(applicant)
+            added_to_spla = True
             if applicant in lahsa.possible_applicants:
                 lahsa.possible_applicants.remove(applicant)
                 removed_from_lahsa = True
@@ -241,8 +286,9 @@ def spla_turn_max(spla, lahsa):
         if best_spla_efficiency < spla_efficiency:
             best_spla_efficiency = spla_efficiency
             associated_lahsa_efficiency = lahsa_efficiency
-        spla.remove_applicant(applicant)
         spla.possible_applicants.add(applicant)
+        if added_to_spla:
+            spla.remove_applicant(applicant)
         if removed_from_lahsa:
             lahsa.possible_applicants.add(applicant)
     return best_spla_efficiency, associated_lahsa_efficiency
