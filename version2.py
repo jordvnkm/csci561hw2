@@ -240,7 +240,7 @@ def lahsa_turn_max(spla, lahsa):
     if len(lahsa.possible_applicants) == 0 and len(spla.possible_applicants) == 0:
         return spla.efficiency, lahsa.efficiency
     elif len(lahsa.possible_applicants) == 0:
-        return spla_turn_max(spla, lahsa), lahsa.efficiency
+        return spla_turn_max(spla, lahsa)
 
     best_lahsa_efficiency = -1
     associated_spla_efficiency = -1
@@ -270,7 +270,7 @@ def spla_turn_max(spla, lahsa):
     if len(spla.possible_applicants) == 0 and len(lahsa.possible_applicants) == 0:
         return spla.efficiency, lahsa.efficiency
     elif len(spla.possible_applicants) == 0:
-        return spla.efficiency, lahsa_turn_max(spla, lahsa)
+        return lahsa_turn_max(spla, lahsa)
 
     best_spla_efficiency = -1
     associated_lahsa_efficiency = -1
